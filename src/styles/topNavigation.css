@@ -1,0 +1,28 @@
+/* styles.css */
+.custom-menu {
+    background-color: #0069cb; /* Change this to your desired background color */
+}
+
+.custom-menu .ant-menu {
+    background-color: #ffffff;
+    /* Change the background color */
+}
+
+.custom-menu .ant-menu-item {
+    color: #fafafa;
+    /* Change the text color of menu items */
+}
+
+.custom-menu .ant-menu-item-selected {
+    background-color: #7390aa;
+    /* Change the background color of the selected menu item */
+    color: #fefefe;
+    /* Change the text color of the selected menu item */
+}
+
+.custom-menu .ant-menu-item:hover {
+    background-color: #ffffff;
+    /* Change the background color of menu items on hover */
+    color: #511313;
+    /* Change the text color of menu items on hover */
+}

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Typography, Card, InputNumber, Table } from 'antd';
+import { Form, Input, Button, Typography, Card, InputNumber, Table, message } from 'antd';
 import moment from 'moment';
+import axios from 'axios';
+import jwt from 'jsonwebtoken';
+
 
 const { Title } = Typography;
 
@@ -31,9 +34,66 @@ const Timesheet = () => {
         setCurrentWeek(currentWeek.clone().add(1, 'week'));
     };
 
+    const token = localStorage.getItem('token');
+    const decoded = jwt.decode(token);
+    // Extract the userId (which is in the sub field)
+    const userId = decoded.sub;
+
     // Form submission handler
     const onFinish = (values) => {
-        console.log('Form values:', values);
+        let timesheetArray = [];
+        while (Object.keys(values).length > 0) {
+            let date = Object.keys(values)[0].split('_')[1];
+
+            if (!values[`hoursWorked_${date}`] && !values[`notes_${date}`]) {
+                delete values[`hoursWorked_${date}`];
+                delete values[`notes_${date}`];
+                continue;
+            }
+
+            timesheetArray.push(
+                {
+                    "_id": null,
+                    "userId": {
+                        "_id": userId
+                    },
+                    "date": date,
+                    "hoursWorked": values[`hoursWorked_${date}`],
+                    "status": "Submitted",
+                    "notes": values[`notes_${date}`]
+                }
+            );
+            delete values[`hoursWorked_${date}`];
+            delete values[`notes_${date}`];
+        };
+        let data = JSON.stringify({
+            "keys": [
+                "_id"
+            ],
+            "docs": timesheetArray
+        });
+
+        let config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: `${process.env.REACT_APP_DNIO_SERVICES_BASE_URL}/${process.env.REACT_APP_DNIO_APP_NAME}/${process.env.REACT_APP_DNIO_SERVICE_TIMESHEET}/utils/bulkUpsert?update=true&insert=true`,
+            headers: {
+                'accept': '*/*',
+                'Authorization': process.env.REACT_APP_DNIO_API_KEY,
+                'Content-Type': 'application/json'
+            },
+            data: data
+        };
+
+        axios.request(config)
+            .then((response) => {
+                console.log(JSON.stringify(response.data));
+                message.success('Submission successful!');
+            })
+            .catch((error) => {
+                console.log(error);
+                message.error('Submission failed. Please try again.');
+            });
     };
 
     // Table columns

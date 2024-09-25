@@ -1,28 +1,57 @@
-/* styles.css */
-.custom-menu {
-    background-color: #0069cb; /* Change this to your desired background color */
+.custom-header {
+    background: linear-gradient(135deg, #1f3a93, #6bb5ff); /* Soft gradient */
+    padding: 2px 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.custom-menu .ant-menu {
-    background-color: #ffffff;
-    /* Change the background color */
+.custom-menu {
+    display: flex;
+    justify-content: left; /* Center the menu */
+    align-items: left;
+    background-color: transparent;
+    border-bottom: none;
 }
 
 .custom-menu .ant-menu-item {
-    color: #fafafa;
-    /* Change the text color of menu items */
-}
-
-.custom-menu .ant-menu-item-selected {
-    background-color: #7390aa;
-    /* Change the background color of the selected menu item */
-    color: #fefefe;
-    /* Change the text color of the selected menu item */
+    color: #f0f8ff; /* Light color for contrast */
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 500;
+    transition: color 0.3s ease;
 }
 
 .custom-menu .ant-menu-item:hover {
-    background-color: #ffffff;
-    /* Change the background color of menu items on hover */
-    color: #511313;
-    /* Change the text color of menu items on hover */
+    color: #ffd700; /* Gold color on hover */
+    text-shadow: 0px 0px 8px rgba(255, 215, 0, 0.7);
+}
+
+.custom-menu .ant-menu-item-selected {
+    color: #ffd700;
+}
+
+.custom-menu .ant-menu-item a {
+    color: inherit;
+}
+
+.custom-menu .anticon {
+    font-size: 20px; /* Increase icon size */
+    margin-right: 8px;
+}
+
+.custom-menu .ant-menu-submenu-title {
+    color: #f0f8ff;
+}
+
+.custom-menu .ant-menu-submenu-title:hover {
+    color: #ffd700;
+}
+
+.custom-menu .ant-menu-submenu-arrow {
+    color: #f0f8ff; /* Arrow color for dropdown */
+}
+
+.custom-menu .ant-menu-submenu-popup {
+    background-color: #1f3a93;
+    border-radius: 8px;
 }

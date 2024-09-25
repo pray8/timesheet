@@ -6,6 +6,10 @@ import Footer from './common/footer.js';
 import TimesheetPage from './pages/timesheet.js';
 import LoginPage from './pages/login.js';
 import RegisterPage from './pages/register.js';
+import Approval from './pages/approval.js';
+import Maintenance from './pages/maintenance.js';
+import HomePage from './pages/homePage.js';
+import NotFound from './pages/notFound.js';
 
 
 const AppRouter = () => {
@@ -15,16 +19,13 @@ const AppRouter = () => {
                 <Header />
                 <div style={styles.content}>
                     <Routes>
-                        <Route path="/timesheet" element={<TimesheetPage />} />
-                        {/* Add more routes as needed */}
-                    </Routes>
-                    <Routes>
-                        <Route path="/login" element={<LoginPage />} />
-                        {/* Add more routes as needed */}
-                    </Routes>
-                    <Routes>
+                        <Route path="/" element={<HomePage />} />
                         <Route path="/register" element={<RegisterPage />} />
-                        {/* Add more routes as needed */}
+                        <Route path="/login" element={<LoginPage />} />
+                        <Route path="/timesheet" element={<TimesheetPage />} />
+                        <Route path="/approval" element={<Approval />} />
+                        <Route path="/maintenance" element={<Maintenance />} />
+                        <Route path="*" element={<NotFound />} /> {/* This should be last */}
                     </Routes>
                 </div>
                 <Footer />

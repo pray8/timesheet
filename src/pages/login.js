@@ -1,5 +1,4 @@
-import React from 'react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { Form, Input, Button, Typography, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
@@ -64,6 +63,13 @@ const LoginPage = () => {
                     </Button>
                 </Form.Item>
             </Form>
+
+            {/* Register Button */}
+            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <Button type="link" onClick={() => navigate('/register')}>
+                    Don't have an account? Register here.
+                </Button>
+            </div>
         </div>
     );
 };

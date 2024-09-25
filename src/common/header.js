@@ -2,76 +2,83 @@ import React, { useState } from 'react';
 import { AppstoreOutlined, SettingOutlined } from '@ant-design/icons';
 import { Menu } from 'antd';
 import CustomIcon from './customeIcon.js';
-import '../styles/topNavigation.css'
-
+import '../styles/topNavigation.css'; // For additional custom styles
+import logo from '../assets/logo.jpg';
 
 const items = [
     {
         label: '',
         key: 'logo',
-        icon: <CustomIcon src="src/assets/logo.jpg" alt="" />,
+        icon: <CustomIcon src={logo} alt="Logo" style={{ width: '100px', height: '200%' }} />,
     },
     {
-        label: 'Navigation Two',
-        key: 'app',
+        label: 'Dashboard',
+        key: 'dashboard',
         icon: <AppstoreOutlined />,
-        disabled: true,
     },
     {
-        label: 'Navigation Three - Submenu',
-        key: 'SubMenu',
+        label: 'Settings',
+        key: 'settings',
         icon: <SettingOutlined />,
         children: [
             {
                 type: 'group',
-                label: 'Item 1',
+                label: 'User Preferences',
                 children: [
                     {
-                        label: 'Option 1',
-                        key: 'setting:1',
+                        label: 'Profile',
+                        key: 'profile',
                     },
                     {
-                        label: 'Option 2',
-                        key: 'setting:2',
+                        label: 'Privacy',
+                        key: 'privacy',
                     },
                 ],
             },
             {
                 type: 'group',
-                label: 'Item 2',
+                label: 'System Settings',
                 children: [
                     {
-                        label: 'Option 3',
-                        key: 'setting:3',
+                        label: 'Notifications',
+                        key: 'notifications',
                     },
                     {
-                        label: 'Option 4',
-                        key: 'setting:4',
+                        label: 'Security',
+                        key: 'security',
                     },
                 ],
             },
         ],
     },
     {
-        key: 'alipay',
+        key: 'help',
         label: (
-            <a href="https://ant.design" target="_blank" rel="noopener noreferrer">
-                Navigation Four - Link
+            <a href="https://help.site" target="_blank" rel="noopener noreferrer">
+                Help Center
             </a>
         ),
     },
 ];
+
 const Header = () => {
-    const [current, setCurrent] = useState('mail');
+    const [current, setCurrent] = useState('dashboard');
+
     const onClick = (e) => {
-        console.log('click ', e);
         setCurrent(e.key);
     };
-    return <Menu onClick={onClick}
+
+    return (
+        <header className="custom-header">
+            <Menu
+                onClick={onClick}
                 selectedKeys={[current]}
                 mode="horizontal"
                 items={items}
-                className="custom-menu"/>;
+                className="custom-menu"
+            />
+        </header>
+    );
 };
 
 export default Header;

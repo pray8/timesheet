@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Typography, Card, InputNumber, Table, message, Tag } from 'antd';
+import { Form, Input, Button, Typography, Card, InputNumber, Table, message, Tag, Select } from 'antd';
 import moment from 'moment';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import { useNavigate } from 'react-router-dom';
 
 const { Title } = Typography;
+const { Option } = Select;
 
 const Timesheet = () => {
     const [currentWeek, setCurrentWeek] = useState(moment().startOf('week'));
     const [form] = Form.useForm();
     const [timesheetData, setTimesheetData] = useState([]);
+    const [projects, setProjects] = useState([]);
+    const [formState, setFormState] = useState({});
     const [loading, setLoading] = useState(null);
     const [error, setError] = useState(null);
     const navigate = useNavigate();
@@ -40,41 +43,64 @@ const Timesheet = () => {
         }
     }, [token, decoded, navigate]);
 
+    // Fetch projects for dropdown selection
     useEffect(() => {
-        if (!token) {
-            return; // Exit the function if no token
-        }
-
-        const fetchTimesheetData = async () => {
-            setLoading(true);
+        const fetchProjects = async () => {
             try {
                 let config = {
                     method: 'get',
                     maxBodyLength: Infinity,
-                    url: `${process.env.REACT_APP_DNIO_SERVICES_BASE_URL}/${process.env.REACT_APP_DNIO_APP_NAME}/${process.env.REACT_APP_DNIO_SERVICE_TIMESHEETS}/?filter={"$and":[{"date.tzData":{"$gte":"${startOfWeek.format('YYYY-MM-DD')}","$lte":"${endOfWeek.format('YYYY-MM-DD')}"}}, {"userId._id": "${userId}"}]}`,
+                    url: `${process.env.REACT_APP_DNIO_SERVICES_BASE_URL}/${process.env.REACT_APP_DNIO_APP_NAME}/${process.env.REACT_APP_DNIO_SERVICE_PROJECTS}`,
                     headers: {
                         'accept': '*/*',
                         'Authorization': process.env.REACT_APP_DNIO_API_KEY
                     }
                 };
                 const response = await axios.request(config);
-                setTimesheetData(response.data);
-                message.success('Timesheet Fetched Successfully!');
+                setProjects(response.data);
             } catch (error) {
-                console.log(error);
-                message.error('Timesheet Fetching Failed!');
-                setError(true);
-            } finally {
-                setLoading(false);
+                message.error('Failed to fetch projects');
             }
         };
-        fetchTimesheetData();
+        fetchProjects();
+    }, []);
+
+    const fetchTimesheetData = async () => {
+        setLoading(true);
+        try {
+            let config = {
+                method: 'get',
+                maxBodyLength: Infinity,
+                url: `${process.env.REACT_APP_DNIO_SERVICES_BASE_URL}/${process.env.REACT_APP_DNIO_APP_NAME}/${process.env.REACT_APP_DNIO_SERVICE_TIMESHEETS}/?filter={"$and":[{"date.rawData":{"$gte":"${startOfWeek.format('YYYY-MM-DD')}","$lte":"${endOfWeek.format('YYYY-MM-DD')}"}}, {"userId._id": "${userId}"}]}`,
+                headers: {
+                    'accept': '*/*',
+                    'Authorization': process.env.REACT_APP_DNIO_API_KEY
+                }
+            };
+            const response = await axios.request(config);
+            setTimesheetData(response.data);
+            message.success('Timesheet Fetched Successfully!');
+        } catch (error) {
+            console.log(error);
+            message.error('Timesheet Fetching Failed!');
+            setError(true);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!token) {
+            return; // Exit the function if no token
+        }
+
+        fetchTimesheetData();  // Fetch the data when the component loads
     }, [currentWeek, token]);
 
     useEffect(() => {
         if (timesheetData) {
             timesheetData.forEach(entry => {
-                const dateKey = moment(entry.date.tzData).format('YYYY-MM-DD');
+                const dateKey = moment(entry.date.rawData).format('YYYY-MM-DD');
                 form.setFieldsValue({
                     [`hoursWorked_${dateKey}`]: entry.hoursWorked,
                     [`notes_${dateKey}`]: entry.notes,
@@ -95,39 +121,71 @@ const Timesheet = () => {
     }, [timesheetData, form]);
 
     const onFinish = (values) => {
-        timesheetData.forEach((timesheetObject, index) => {
-            const timesheetDate = moment(timesheetObject.date.tzData).format('YYYY-MM-DD');
-            if (timesheetObject.hoursWorked === values[`hoursWorked_${timesheetDate}`]) {
-                delete values[`hoursWorked_${timesheetDate}`];
-            }
-            if (timesheetObject.notes === values[`notes_${timesheetDate}`]) {
-                delete values[`notes_${timesheetDate}`];
-            }
-        });
+        console.log("values", values);
+        console.log(timesheetData)
+        // timesheetData.forEach((timesheetObject) => {
+        //     const timesheetDate = moment(timesheetObject.date.rawData).format('YYYY-MM-DD');
+        //     const inputEntries = values[`entries_${timesheetDate}`];
+
+        //     // Proceed only if inputEntries exist
+        //     if (inputEntries) {
+        //         // Create a Set for quick lookup of entries
+        //         const entrySet = new Set(timesheetObject.entries.map(entry =>
+        //             `${entry.hoursWorked}-${entry.projectId._id}`
+        //         ));
+
+        //         // Filter inputEntries based on whether they exist in the entrySet
+        //         values[`entries_${timesheetDate}`] = inputEntries.filter(inputEntry => {
+        //             const key = `${inputEntry.hoursWorked}-${inputEntry.projectId}`;
+        //             return !entrySet.has(key); // Keep entries not found in timesheetObject.entries
+        //         });
+        //     }
+
+        //     // Check if notes match and delete if they do
+        //     if (timesheetObject.notes === values[`notes_${timesheetDate}`]) {
+        //         values[`notes_${timesheetDate}`] = undefined; // Set to undefined instead of delete
+        //     }
+        // });
+
         let timesheetArray = [];
         const dateToIdMap = timesheetData.reduce((map, entry) => {
-            const dateKey = moment(entry.date.tzData).format('YYYY-MM-DD');
+            const dateKey = moment(entry.date.rawData).format('YYYY-MM-DD');
             map[dateKey] = entry._id;
             return map;
         }, {});
+
         while (Object.keys(values).length > 0) {
             let date = Object.keys(values)[0].split('_')[1];
-            if (!values[`hoursWorked_${date}`] && !values[`notes_${date}`]) {
-                delete values[`hoursWorked_${date}`];
-                delete values[`notes_${date}`];
-                continue;
-            }
+            const entries = values[`entries_${date}`] || [];
+            // if (!values[`notes_${date}`]) {
+            //     delete values[`notes_${date}`];
+            //     continue;
+            // };
+            // if (!values[`entries_${date}`]) {
+            //     delete values[`entries_${date}`];
+            //     continue;
+            // };
+
             timesheetArray.push({
                 "_id": dateToIdMap[`${date}`],
-                "userId": { "_id": userId },
+                "userId": {
+                    "_id": userId
+                },
                 "date": date,
-                "hoursWorked": values[`hoursWorked_${date}`],
+                "entries": entries.map(e => ({
+                    "projectId": {
+                        "_id": e.projectId
+                    },
+                    "hoursWorked": e.hoursWorked,
+                })),
+                "totalHours": entries.reduce((total, e) => total + (e.hoursWorked || 0), 0),
                 "status": "Submitted",
                 "notes": values[`notes_${date}`]
             });
-            delete values[`hoursWorked_${date}`];
+            delete values[`entries_${date}`]
             delete values[`notes_${date}`];
-        }
+        };
+        console.log(timesheetArray);
         if (timesheetArray.length > 0) {
             let data = JSON.stringify({ "keys": ["_id"], "docs": timesheetArray });
             let config = {
@@ -146,6 +204,7 @@ const Timesheet = () => {
                 .then((response) => {
                     console.log(JSON.stringify(response.data));
                     message.success('Submission successful!');
+                    fetchTimesheetData();
                 })
                 .catch((error) => {
                     console.log(error);
@@ -157,35 +216,132 @@ const Timesheet = () => {
         };
     };
 
+    const addProjectEntry = (date) => {
+        console.log("HELLO", date);
+        const currentEntries = form.getFieldValue(`entries_${date}`) || [];
+        form.setFieldsValue({
+            [`entries_${date}`]: [...currentEntries, { projectId: null, hoursWorked: 0 }],
+        });
+        setFormState(prev => ({ ...prev }));
+    };
+
+    const removeProjectEntry = (date, index) => {
+        const currentEntries = form.getFieldValue(`entries_${date}`) || [];
+        const updatedEntries = currentEntries.filter((_, i) => i !== index); // Filter out the entry at the specified index
+        form.setFieldsValue({
+            [`entries_${date}`]: updatedEntries, // Update the form with the new entries
+        });
+        setFormState(prev => ({ ...prev }));
+    };
+
     const columns = [
         {
             title: 'Date',
             dataIndex: 'date',
             key: 'date',
+            width: 200,
+            align: 'center',
             render: (date) => moment(date).format('dddd, MMM D'),
         },
         {
-            title: 'Hours Worked',
-            dataIndex: 'hoursWorked',
-            key: 'hoursWorked',
-            render: (text, record) => (
-                <Form.Item
-                    name={`hoursWorked_${moment(record.date).format('YYYY-MM-DD')}`}
-                    rules={[{ required: moment(record.date).isSameOrBefore(today), message: 'Please input hours!' }]}
-                >
-                    <InputNumber
-                        min={0}
-                        max={24}
-                        placeholder="Hours"
-                        disabled={moment(record.date).isAfter(today) || form.getFieldValue(`hoursWorkedDisabled_${moment(record.date).format('YYYY-MM-DD')}`)}
-                    />
-                </Form.Item>
-            ),
+            title: 'Projects & Hours',
+            key: 'projects',
+            width: 500,
+            align: 'center',
+            render: (_, record) => {
+                const dateKey = moment(record.date).format('YYYY-MM-DD');
+                const entries = form.getFieldValue(`entries_${dateKey}`) || [];
+
+                return (
+                    <>
+                        {entries.map((entry, index) => (
+                            <div key={`${dateKey}_entry_${index}`} style={{ marginBottom: '0px', marginLeft: '20px' }}>
+                                <Form.Item
+                                    name={[`entries_${dateKey}`, index, 'projectId']}  // Make sure the index is part of the name
+                                    style={{ display: 'inline-block', width: 'calc(50% - 12px)' }}
+                                    rules={[{ required: true, message: 'Please select a project' }]}
+                                >
+                                    <Select
+                                        placeholder="Select project"
+                                        disabled={form.getFieldValue(`entriesDisabled_${dateKey}`)}
+                                        style={{ align: 'center' }}
+                                    >
+                                        {projects.map(project => (
+                                            <Option key={project._id} value={project._id}>{project.project_name}</Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+
+                                <Form.Item
+                                    name={[`entries_${dateKey}`, index, 'hoursWorked']}  // Index ensures the correct entry is targeted
+                                    style={{ display: 'inline-block', width: 'calc(50% - 12px)', marginLeft: '8px' }}
+                                    rules={[{ required: true, message: 'Please input hours worked' }]}
+                                >
+                                    <InputNumber
+                                        min={0}
+                                        max={24}
+                                        placeholder="Hours"
+                                        disabled={form.getFieldValue(`entriesDisabled_${dateKey}`)}
+                                    />
+                                    <Button
+                                        type="link"
+                                        onClick={() => removeProjectEntry(dateKey, index)}
+                                        style={{
+                                            marginLeft: '40px',
+                                            color: '#333',  // Initial dark gray color
+                                            backgroundColor: 'transparent',  // No background for a clean look
+                                            fontSize: '14px',  // Smaller font size
+                                            fontWeight: 'bold',
+                                            padding: '10',  // No padding for a text-link feel
+                                            border: 'none',  // No borders
+                                            borderRadius: '0',  // Remove rounded corners
+                                            transition: 'color 0.5s ease, text-shadow 0.5s ease',  // Smooth transition for hover
+                                            textShadow: 'grey',  // No shadow initially
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            cursor: 'pointer'  // Pointer for clickable feel
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.color = 'red';
+                                            e.currentTarget.style.textShadow = '0px 0px 8px rgba(255, 0, 0, 0.6)';  // Red glow effect
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.color = '#333';  // Revert back to dark gray color
+                                            e.currentTarget.style.textShadow = 'none';  // Remove the shadow effect
+                                        }}
+                                    >
+                                        x
+                                    </Button>
+
+                                </Form.Item>
+                            </div>
+                        ))}
+
+                        <Button type="dashed" onClick={() => addProjectEntry(dateKey)} style={{ width: '100%' }}
+                            disabled={moment(record.date).isAfter(today)}>
+                            + Add Project
+                        </Button>
+                    </>
+                );
+            },
+        },
+        {
+            title: 'Total Hours',
+            key: 'total_hours',
+            width: 150,
+            align: 'center',
+            render: (_, record) => {
+                const dateKey = moment(record.date).format('YYYY-MM-DD');
+                const entries = form.getFieldValue(`entries_${dateKey}`) || [];
+                return entries.reduce((total, entry) => total + (entry.hoursWorked || 0), 0);
+            },
         },
         {
             title: 'Notes',
             dataIndex: 'notes',
             key: 'notes',
+            width: 400,
+            align: 'center',
             render: (text, record) => (
                 <Form.Item
                     name={`notes_${moment(record.date).format('YYYY-MM-DD')}`}
@@ -203,6 +359,7 @@ const Timesheet = () => {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
+            align: 'center',
             render: (status) => {
                 let color;
                 switch (status) {
@@ -211,7 +368,7 @@ const Timesheet = () => {
                     case 'Submitted': color = 'blue'; break;
                     default: color = 'gray';
                 }
-                return <Tag color={color}>{status ? status : 'Pending'}</Tag>;
+                return <Tag color={color}>{status || 'Pending'}</Tag>;
             }
         }
     ];
@@ -219,9 +376,8 @@ const Timesheet = () => {
     const dataSource = days.map((day, index) => ({
         key: index,
         date: day,
-        hoursWorked: form.getFieldValue(`hoursWorked_${moment(day).format('YYYY-MM-DD')}`),
-        notes: form.getFieldValue(`notes_${moment(day).format('YYYY-MM-DD')}`),
-        status: timesheetData.find(entry => moment(entry.date.tzData).format('YYYY-MM-DD') === moment(day).format('YYYY-MM-DD'))?.status || 'Pending',
+        total_hours: form.getFieldValue(`entries_${moment(day).format('YYYY-MM-DD')}`)?.reduce((sum, e) => sum + e.hoursWorked, 0) || 0,
+        status: timesheetData.find(entry => moment(entry.date.rawData).format('YYYY-MM-DD') === moment(day).format('YYYY-MM-DD'))?.status || 'Pending',
     }));
 
     return (

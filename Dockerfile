@@ -13,8 +13,6 @@ RUN export NODE_OPTIONS=--openssl-legacy-provider
 # Install and cache application dependencies.
 RUN yarn install
 
-RUN yarn add crypto-browserify
-
 # Build the project.
 RUN yarn build
 

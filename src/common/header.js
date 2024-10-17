@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AppstoreOutlined, SettingOutlined } from '@ant-design/icons';
 import { Menu } from 'antd';
-import CustomIcon from './customeIcon.js';
+import CustomIcon from './customIcon.js'
 import '../styles/topNavigation.css'; // For additional custom styles
 import logo from '../assets/logo.jpg';
 

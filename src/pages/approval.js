@@ -62,7 +62,7 @@ const Approval = () => {
                 });
         };
         fetchUsers();
-    }, []);
+    }, [token, decoded]);
 
     // Fetch the list of departments for the manager to approve
     useEffect(() => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layout, Space } from 'antd';
+import { Layout } from 'antd';
 // import { FacebookOutlined, TwitterOutlined, LinkedinOutlined, GithubOutlined } from '@ant-design/icons';
 
 const { Footer } = Layout;

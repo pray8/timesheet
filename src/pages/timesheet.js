@@ -99,53 +99,56 @@ const Timesheet = () => {
 
     useEffect(() => {
         if (timesheetData) {
+            const formValues = {};
+
             timesheetData.forEach(entry => {
                 const dateKey = moment(entry.date.rawData).format('YYYY-MM-DD');
-                form.setFieldsValue({
-                    [`hoursWorked_${dateKey}`]: entry.hoursWorked,
-                    [`notes_${dateKey}`]: entry.notes,
+                formValues[`entries_${dateKey}`] = [];
+                entry.entries.forEach((entryItem, index) => {
+                    formValues[`entries_${dateKey}`].push({
+                        ['projectId']: entryItem.projectId._id,
+                        ['hoursWorked']: entryItem.hoursWorked,
+                    });
                 });
+
+                formValues[`totalHours_${dateKey}`] = entry.totalHours;
+                formValues[`notes_${dateKey}`] = entry.notes;
+
                 if (entry.status === 'Approved') {
-                    form.setFieldsValue({
-                        [`hoursWorkedDisabled_${dateKey}`]: true,
-                        [`notesDisabled_${dateKey}`]: true
-                    });
+                    formValues[`entriesDisabled_${dateKey}`] = true;
+                    formValues[`notesDisabled_${dateKey}`] = true;
                 } else {
-                    form.setFieldsValue({
-                        [`hoursWorkedDisabled_${dateKey}`]: false,
-                        [`notesDisabled_${dateKey}`]: false
-                    });
+                    formValues[`entriesDisabled_${dateKey}`] = false;
+                    formValues[`notesDisabled_${dateKey}`] = false;
                 }
             });
+
+            form.setFieldsValue(formValues);
+            setFormState(prev => ({ ...prev }));
         }
     }, [timesheetData, form]);
 
+    function combineNotesAndEntries(values) {
+        const combinedResult = {};
+
+        Object.keys(values).forEach(key => {
+            const [type, date] = key.split('_');  // Split into "notes"/"entries" and date parts
+            if (!combinedResult[date]) {
+                combinedResult[date] = { date };  // Initialize date entry
+            }
+
+            if (type === 'notes') {
+                combinedResult[date].notes = values[key];
+            } else if (type === 'entries') {
+                combinedResult[date].entries = values[key];
+            }
+        });
+
+        return Object.values(combinedResult);  // Convert the result to an array of objects
+    };
+
     const onFinish = (values) => {
-        console.log("values", values);
-        console.log(timesheetData)
-        // timesheetData.forEach((timesheetObject) => {
-        //     const timesheetDate = moment(timesheetObject.date.rawData).format('YYYY-MM-DD');
-        //     const inputEntries = values[`entries_${timesheetDate}`];
-
-        //     // Proceed only if inputEntries exist
-        //     if (inputEntries) {
-        //         // Create a Set for quick lookup of entries
-        //         const entrySet = new Set(timesheetObject.entries.map(entry =>
-        //             `${entry.hoursWorked}-${entry.projectId._id}`
-        //         ));
-
-        //         // Filter inputEntries based on whether they exist in the entrySet
-        //         values[`entries_${timesheetDate}`] = inputEntries.filter(inputEntry => {
-        //             const key = `${inputEntry.hoursWorked}-${inputEntry.projectId}`;
-        //             return !entrySet.has(key); // Keep entries not found in timesheetObject.entries
-        //         });
-        //     }
-
-        //     // Check if notes match and delete if they do
-        //     if (timesheetObject.notes === values[`notes_${timesheetDate}`]) {
-        //         values[`notes_${timesheetDate}`] = undefined; // Set to undefined instead of delete
-        //     }
-        // });
+        let combineNotesAndEntriesArray = combineNotesAndEntries(values);
 
         let timesheetArray = [];
         const dateToIdMap = timesheetData.reduce((map, entry) => {
@@ -154,38 +157,27 @@ const Timesheet = () => {
             return map;
         }, {});
 
-        while (Object.keys(values).length > 0) {
-            let date = Object.keys(values)[0].split('_')[1];
-            const entries = values[`entries_${date}`] || [];
-            // if (!values[`notes_${date}`]) {
-            //     delete values[`notes_${date}`];
-            //     continue;
-            // };
-            // if (!values[`entries_${date}`]) {
-            //     delete values[`entries_${date}`];
-            //     continue;
-            // };
-
-            timesheetArray.push({
-                "_id": dateToIdMap[`${date}`],
-                "userId": {
-                    "_id": userId
-                },
-                "date": date,
-                "entries": entries.map(e => ({
-                    "projectId": {
-                        "_id": e.projectId
+        const today = moment();
+        combineNotesAndEntriesArray.forEach((item) => {
+            if (moment(item.date).isSameOrBefore(today, 'day')) {
+                timesheetArray.push({
+                    "_id": dateToIdMap[`${item.date}`],
+                    "userId": {
+                        "_id": userId
                     },
-                    "hoursWorked": e.hoursWorked,
-                })),
-                "totalHours": entries.reduce((total, e) => total + (e.hoursWorked || 0), 0),
-                "status": "Submitted",
-                "notes": values[`notes_${date}`]
-            });
-            delete values[`entries_${date}`]
-            delete values[`notes_${date}`];
-        };
-        console.log(timesheetArray);
+                    "date": item.date,
+                    "entries": item.entries ? item.entries.map(e => ({
+                        "projectId": {
+                            "_id": e.projectId
+                        },
+                        "hoursWorked": e.hoursWorked,
+                    })) : [],
+                    "totalHours": item.entries ? item.entries.reduce((total, e) => total + (e.hoursWorked || 0), 0) : 0,
+                    "status": "Submitted",
+                    "notes": item.notes
+                });
+            }
+        });
         if (timesheetArray.length > 0) {
             let data = JSON.stringify({ "keys": ["_id"], "docs": timesheetArray });
             let config = {
@@ -217,7 +209,6 @@ const Timesheet = () => {
     };
 
     const addProjectEntry = (date) => {
-        console.log("HELLO", date);
         const currentEntries = form.getFieldValue(`entries_${date}`) || [];
         form.setFieldsValue({
             [`entries_${date}`]: [...currentEntries, { projectId: null, hoursWorked: 0 }],
@@ -227,12 +218,52 @@ const Timesheet = () => {
 
     const removeProjectEntry = (date, index) => {
         const currentEntries = form.getFieldValue(`entries_${date}`) || [];
-        const updatedEntries = currentEntries.filter((_, i) => i !== index); // Filter out the entry at the specified index
+        const updatedEntries = currentEntries.filter((entry, i) => i !== index); // Filter out the entry at the specified index
+
+        // Recalculate total hours after the entry is removed
+        const totalHours = updatedEntries.reduce((acc, entry) => acc + (entry.hoursWorked || 0), 0);
+
         form.setFieldsValue({
             [`entries_${date}`]: updatedEntries, // Update the form with the new entries
+            [`totalHours_${date}`]: totalHours, // Update the total hours field
         });
+
         setFormState(prev => ({ ...prev }));
     };
+
+    const handleHoursChange = (value, dateKey, index) => {
+        // Get current form values
+        const entries = form.getFieldValue(`entries_${dateKey}`) || [];
+
+        // Update the current entry with the new value
+        entries[index].hoursWorked = value;
+
+        // Calculate total hours by summing hoursWorked for all entries
+        const totalHours = entries.reduce((acc, entry) => acc + (entry.hoursWorked || 0), 0);
+
+        if (totalHours > 24) {
+            // Set an error on the 'hoursWorked' field
+            form.setFields([
+                {
+                    name: [`entries_${dateKey}`, index, 'hoursWorked'],
+                    errors: ['Total hours worked cannot exceed 24 hours.'],
+                },
+            ]);
+        } else {
+            // Clear the error if within the limit
+            form.setFields([
+                {
+                    name: [`entries_${dateKey}`, index, 'hoursWorked'],
+                    errors: [],
+                },
+            ]);
+
+            // Update totalHours field
+            form.setFieldsValue({ [`totalHours_${dateKey}`]: totalHours });
+        }
+        setFormState(prev => ({ ...prev }));
+    };
+
 
     const columns = [
         {
@@ -255,65 +286,70 @@ const Timesheet = () => {
                 return (
                     <>
                         {entries.map((entry, index) => (
-                            <div key={`${dateKey}_entry_${index}`} style={{ marginBottom: '0px', marginLeft: '20px' }}>
+                            <div key={`${dateKey}_projectId_${index}`} style={{ marginBottom: '0px', marginLeft: '10px' }}>
                                 <Form.Item
-                                    name={[`entries_${dateKey}`, index, 'projectId']}  // Make sure the index is part of the name
+                                    name={[`entries_${dateKey}`, index, 'projectId']} // Name structure to match your requirement
                                     style={{ display: 'inline-block', width: 'calc(50% - 12px)' }}
                                     rules={[{ required: true, message: 'Please select a project' }]}
+                                    initialValue={entry['projectId']} // Populate with entry value
                                 >
                                     <Select
                                         placeholder="Select project"
                                         disabled={form.getFieldValue(`entriesDisabled_${dateKey}`)}
-                                        style={{ align: 'center' }}
                                     >
                                         {projects.map(project => (
-                                            <Option key={project._id} value={project._id}>{project.project_name}</Option>
+                                            <Option key={project._id} value={project._id}>
+                                                {project.projectName}
+                                            </Option>
                                         ))}
                                     </Select>
                                 </Form.Item>
 
                                 <Form.Item
-                                    name={[`entries_${dateKey}`, index, 'hoursWorked']}  // Index ensures the correct entry is targeted
-                                    style={{ display: 'inline-block', width: 'calc(50% - 12px)', marginLeft: '8px' }}
+                                    name={[`entries_${dateKey}`, index, 'hoursWorked']} // Correct name structure
+                                    style={{ display: 'inline-block', width: 'calc(50% - 12px)', marginLeft: '0px' }}
                                     rules={[{ required: true, message: 'Please input hours worked' }]}
+                                    initialValue={entry['hoursWorked']} // Populate with entry value
                                 >
                                     <InputNumber
                                         min={0}
                                         max={24}
                                         placeholder="Hours"
                                         disabled={form.getFieldValue(`entriesDisabled_${dateKey}`)}
+                                        onChange={(value) => handleHoursChange(value, dateKey, index)} // Handle hours change
                                     />
-                                    <Button
-                                        type="link"
-                                        onClick={() => removeProjectEntry(dateKey, index)}
-                                        style={{
-                                            marginLeft: '40px',
-                                            color: '#333',  // Initial dark gray color
-                                            backgroundColor: 'transparent',  // No background for a clean look
-                                            fontSize: '14px',  // Smaller font size
-                                            fontWeight: 'bold',
-                                            padding: '10',  // No padding for a text-link feel
-                                            border: 'none',  // No borders
-                                            borderRadius: '0',  // Remove rounded corners
-                                            transition: 'color 0.5s ease, text-shadow 0.5s ease',  // Smooth transition for hover
-                                            textShadow: 'grey',  // No shadow initially
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            cursor: 'pointer'  // Pointer for clickable feel
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.color = 'red';
-                                            e.currentTarget.style.textShadow = '0px 0px 8px rgba(255, 0, 0, 0.6)';  // Red glow effect
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.color = '#333';  // Revert back to dark gray color
-                                            e.currentTarget.style.textShadow = 'none';  // Remove the shadow effect
-                                        }}
-                                    >
-                                        x
-                                    </Button>
-
                                 </Form.Item>
+
+                                <Button
+                                    type="link"
+                                    onClick={() => removeProjectEntry(dateKey, index)}
+                                    style={{
+                                        marginLeft: '0px',
+                                        marginRight: '10px',
+                                        color: '#333',  // Initial dark gray color
+                                        backgroundColor: 'transparent',  // No background for a clean look
+                                        fontSize: '14px',  // Smaller font size
+                                        fontWeight: 'bold',
+                                        padding: '0',  // No padding for a text-link feel
+                                        border: 'none',  // No borders
+                                        borderRadius: '0',  // Remove rounded corners
+                                        transition: 'color 0.5s ease, text-shadow 0.5s ease',  // Smooth transition for hover
+                                        textShadow: 'grey',  // No shadow initially
+                                        display: 'inline-flex',
+                                        alignItems: 'left',
+                                        cursor: 'pointer'  // Pointer for clickable feel
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.color = 'red';
+                                        e.currentTarget.style.textShadow = '0px 0px 8px rgba(255, 0, 0, 0.6)';  // Red glow effect
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.color = '#333';  // Revert back to dark gray color
+                                        e.currentTarget.style.textShadow = 'none';  // Remove the shadow effect
+                                    }}
+                                >
+                                    x
+                                </Button>
                             </div>
                         ))}
 
@@ -332,8 +368,8 @@ const Timesheet = () => {
             align: 'center',
             render: (_, record) => {
                 const dateKey = moment(record.date).format('YYYY-MM-DD');
-                const entries = form.getFieldValue(`entries_${dateKey}`) || [];
-                return entries.reduce((total, entry) => total + (entry.hoursWorked || 0), 0);
+                const totalHours = form.getFieldValue(`totalHours_${dateKey}`) || 0;
+                return totalHours;
             },
         },
         {

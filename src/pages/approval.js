@@ -3,7 +3,7 @@ import { Card, Typography, Row, Col, Table, Button, message, Modal, Tag, Input, 
 import axios from 'axios';
 import moment from 'moment'; // Import moment for date handling
 import { UserOutlined, MailOutlined, ApartmentOutlined, ClockCircleOutlined, FieldTimeOutlined } from '@ant-design/icons'; // Import Ant Design icons
-import jwt from 'jsonwebtoken';
+import { decodeJwt } from 'jose';
 import { useNavigate } from 'react-router-dom';
 
 
@@ -23,7 +23,7 @@ const Approval = () => {
 
     // Check if token exists
     const token = localStorage.getItem('token');
-    const decoded = jwt.decode(token);
+    const decoded = decodeJwt(token);
     const userId = decoded?.sub;
 
     // Redirect if no token or token is invalid

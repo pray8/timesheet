@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Typography, Card, InputNumber, Table, message, Tag, Select } from 'antd';
 import moment from 'moment';
 import axios from 'axios';
-import jwt from 'jsonwebtoken';
+import { decodeJwt } from 'jose';
 import { useNavigate } from 'react-router-dom';
 
 const { Title } = Typography;
@@ -32,7 +32,7 @@ const Timesheet = () => {
 
     // Check if token exists
     const token = localStorage.getItem('token');
-    const decoded = jwt.decode(token);
+    const decoded = decodeJwt(token);
     const userId = decoded?.sub;
 
     // Redirect if no token or token is invalid

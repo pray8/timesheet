@@ -15,7 +15,7 @@ import ErrorBoundary from './globals/errorBoundary.js';
 
 const AppRouter = () => {
     return (
-        <Router>
+        <Router basename="/app">
             <ErrorBoundary>
                 <div style={styles.appContainer}>
                     <Header />

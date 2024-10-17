@@ -21,7 +21,7 @@ const HomePage = () => {
                             <Paragraph>
                                 Keep track of your work hours, manage your tasks, and optimize your productivity with our intuitive timesheet application.
                             </Paragraph>
-                            <Button type="primary" size="large" href="/login">Get Started</Button>
+                            <Button type="primary" size="large" href="/app/login">Get Started</Button>
                         </Col>
                         <Col span={8}>
                             <Image

@@ -32,13 +32,19 @@ const Timesheet = () => {
 
     // Check if token exists
     const token = localStorage.getItem('token');
-    const decoded = decodeJwt(token);
-    const userId = decoded?.sub;
+    let decoded;
+    let userId;
+    if (!token) {
+        console.error('No token found');
+    } else {
+        decoded = decodeJwt(token);
+        userId = decoded?.sub;
+    }
 
     // Redirect if no token or token is invalid
     useEffect(() => {
         if (!token || !decoded) {
-            message.info('You do not have permission. Please log in.');
+            message.info('You do not have permission. Please log in');
             navigate('/login'); // Redirect to login page
         }
     }, [token, decoded, navigate]);
@@ -95,7 +101,7 @@ const Timesheet = () => {
         }
 
         fetchTimesheetData();  // Fetch the data when the component loads
-    }, [currentWeek, token]);
+    }, [currentWeek, token, userId]);
 
     useEffect(() => {
         if (timesheetData) {
